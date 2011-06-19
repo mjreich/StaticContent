@@ -1,17 +1,6 @@
+
 <?php
-/**
- * StaticContent Component
- *
- * A Cumula component that allows you to specify a directory of HTML files which are then rendered through the default cumula template.
- * Routes are created automatically based on the file structure of the Static content directory.
- *
- * @package		Cumula
- * @subpackage	StaticContent
- * @author     Mike Reich
- * @license    MIT License
- * @copyright  2011 Mike Reich
- * @link       http://cumula.org
- */
+ 
 class StaticContent extends BaseComponent {
 	public function __construct() {
 		parent::__construct();
@@ -20,7 +9,7 @@ class StaticContent extends BaseComponent {
 	public function startup() {
 		$routes = array();
 		if($this->config->getConfigValue('files_dir', false) === false)
-			$this->config->setConfigValue('files_dir', ROOT.'/../static');
+			$this->config->setConfigValue('files_dir', '/static');
 		if($this->config->getConfigValue('base_path', false) === false)
 			$this->config->setConfigValue('base_path', '');
 		Application::getRouter()->addEventListener(ROUTER_COLLECT_ROUTES, array(&$this, 'collectRoutes'));
@@ -30,8 +19,8 @@ class StaticContent extends BaseComponent {
 	}
 	
 	public function collectRoutes() {
-		$dir = $this->config->getConfigValue('files_dir');
-		$url_path = $this->config->getConfigValue('base_path');
+		$dir = ROOT.$this->config->getConfigValue('files_dir');
+		$url_path = $this->config->getConfigValue('base_path', '');
 		$routes = array();
 		if(file_exists($dir)) {
 			$dir = dir($dir);
@@ -72,17 +61,25 @@ class StaticContent extends BaseComponent {
 			if (is_file($comp_dir)) {
 				$path = $base_path.'/'.str_replace('.html', '', $comp);
 				$routes[$path] = array(&$this, 'handleStaticFile');
+				if($comp === 'index.html') {
+					$routes[$base_path.'/'] = array(&$this, 'handleStaticFile');	
+				}
 			} else if (is_dir($comp_dir)) {
 				$this->transDir(dir($comp_dir), &$routes, $base_path.'/'.$comp);
 			}
 		}
 	}
-
-	public function handleStaticFile($route) {
-		$files_dir = $this->config->getConfigValue('files_dir');
+ 
+	public function handleStaticFile($route, $router, $request, $response) {
+		$files_dir = ROOT.$this->config->getConfigValue('files_dir');
 		$url_path = $this->config->getConfigValue('base_path');
 		$file = $files_dir.'/'.substr_replace($route, '', 0, strlen($url_path)).'.html';
-		$this->render($file);
-	}
-
+		if (!file_exists($file))
+			$file = $files_dir.'/'.substr_replace($route, '', 0, strlen($url_path)).'index.html';
+		if(file_exists($file))
+			$this->render($file);
+		else
+			$response->send404();
+	}	
+ 
 }
