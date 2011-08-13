@@ -1,4 +1,3 @@
-
 <?php
  
 class StaticContent extends BaseComponent {
@@ -9,16 +8,16 @@ class StaticContent extends BaseComponent {
 	public function startup() {
 		$routes = array();
 		if($this->config->getConfigValue('files_dir', false) === false)
-			$this->config->setConfigValue('files_dir', '/static');
+			$this->config->setConfigValue('files_dir', '/app/static');
 		if($this->config->getConfigValue('base_path', false) === false)
 			$this->config->setConfigValue('base_path', '');
-		Application::getRouter()->addEventListener(ROUTER_COLLECT_ROUTES, array(&$this, 'collectRoutes'));
+		$this->addEventListenerTo('Router', ROUTER_COLLECT_ROUTES, 'collectRoutes');
 		$am = Application::getAdminInterface();
 		if($am)
 			$am->addEventListener(ADMIN_COLLECT_SETTINGS_PAGES, array(&$this, 'setupAdminPages'));
 	}
 	
-	public function collectRoutes() {
+	public function collectRoutes($event, $router) {
 		$dir = ROOT.$this->config->getConfigValue('files_dir');
 		$url_path = $this->config->getConfigValue('base_path', '');
 		$routes = array();
@@ -26,7 +25,7 @@ class StaticContent extends BaseComponent {
 			$dir = dir($dir);
 			$this->transDir($dir, &$routes, $url_path);
 		}
-		Application::getRouter()->addRoutes($routes);
+		$router->addRoutes($routes);
 	}
 	
 	/**
@@ -82,4 +81,13 @@ class StaticContent extends BaseComponent {
 			$response->send404();
 	}	
  
+	  public static function getInfo() {
+	    return array(
+	      'name' => 'Static Content',
+	      'description' => 'Use static HTML files for content which automatically loads routes.',
+	      'version' => '0.2.0',
+	      'dependencies' => array(),
+	    );
+	  } // end function getInfo
+
 }
